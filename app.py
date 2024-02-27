@@ -1,3 +1,7 @@
+import numpy as np
+from PIL import Image
+
+
 def text_to_binary(text):
     binary_code = "".join(format(ord(char), "08b") for char in text)
     return binary_code
@@ -12,3 +16,47 @@ def check_fitness(message, pixels):
     message_length = len(message)
     if message_length > pixels:
         raise ValueError("Message is too large to be embedded in the image.")
+
+
+MARKER = "1010101010101010"  # Reserved pattern as the marker
+
+
+def encode_image(cover_image_path, secret_message, stego_image_path):
+    # IMG
+    cover_image = Image.open(cover_image_path)
+    width, height = cover_image.size
+
+    binary_message = text_to_binary(secret_message)
+
+    # END
+    binary_message += MARKER
+
+    # CHECK
+    check_fitness(binary_message, width * height * 3)
+
+    # Convert the cover image to a NumPy array for faster processing
+    img_array = np.array(cover_image)
+
+    # Flatten the cover image array to a 1D array
+    img_flat = img_array.flatten()
+
+    # msg to LSB
+    for inedx, bit in enumerate(binary_message):
+        bit_value = int(bit)
+        # pixel
+        pixel_value = img_flat[inedx]
+
+        # Change last bit
+        modified_value = (pixel_value & 0xFE) | bit_value
+        # reset the pixel
+        img_flat[inedx] = modified_value
+
+    # changing back to a 2 d img
+    stego_array = img_flat.reshape(height, width, -1)
+
+    # Create the stego image from the NumPy array
+    stego_image = Image.fromarray(stego_array.astype("uint8"))
+
+    # Save the stego image
+    stego_image.save(stego_image_path)
+    print("Message embedded successfully.")
