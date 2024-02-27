@@ -60,3 +60,34 @@ def encode_image(cover_image_path, secret_message, stego_image_path):
     # Save the stego image
     stego_image.save(stego_image_path)
     print("Message embedded successfully.")
+
+
+def decode_image(stego_image_path):
+    # Open the stego image
+    stego_image = Image.open(stego_image_path)
+
+    # Convert the stego image to a NumPy array for faster processing
+    stego_array = np.array(stego_image)
+
+    # Flatten the stego image array to a 1D array
+    stego_flat = stego_array.flatten()
+
+    # Extract the LSBs from the image data until the marker is found
+    binary_message = ""
+    for i, pixel in enumerate(stego_flat):
+        # Extract the LSB of the pixel value
+        bit = str(pixel & 1)
+
+        # Append the bit to the binary message
+        binary_message += bit
+
+        # Check if the marker is found
+        if binary_message.endswith(MARKER):
+            # Remove the marker from the binary message
+            binary_message = binary_message[: -len(MARKER)]
+            break
+
+    # Convert binary message to characters
+    message = binary_to_text(binary_message)
+
+    return message
